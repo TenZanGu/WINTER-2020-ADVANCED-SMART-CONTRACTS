@@ -6,8 +6,8 @@ let buyerAddress;
 let sellerAddress;
 let price = 100000;
 let state = {
-  "CREATED" : 0,
-  "LOCKED" : 1,
+  "CREATED": 0,
+  "LOCKED": 1,
   "INACTIVE": 2
 }
 
@@ -43,7 +43,7 @@ contract("Purchase", function () {
     assert.ok(result.length > 0);
   });
 
-  it("Buyer deposits funds and confirms purchase", async function(){
+  it("Buyer deposits funds and confirms purchase", async function () {
     let result = await Purchase.methods.confirmPurchase().send({
       from: buyerAddress,
       value: price
@@ -59,13 +59,33 @@ contract("Purchase", function () {
     assert.ok(contractState == state["LOCKED"]);
   });
 
-  it("Buyer confirm received", async function(){
+  it("Buyer confirm received", async function () {
     // test here
-  })
+    let contractBalanceBefore = await web3.eth.getBalance(Purchase.options.address);
+    let result = await Purchase.methods.confirmReceived().send({
+      from: buyerAddress,
+      value: price
+    });
+    let contractState = await Purchase.state();
+    let contractBalance = await web3.eth.getBalance(Purchase.options.address);
+    
+    assert.eventEmitted(result, "ItemReceived", {});
+    assert.ok(contractState == state["INACTIVE"]);
+    assert.ok(contractBalance == (contractBalanceBefore - price));
+  });
 
-  it("Seller aborts item", async function(){
-    // test here
-  })
+    it("Seller aborts item", async function () {
+      // test here
+      let result = await Purchase.methods.abort().send({
+        from: sellerAddress
+      });
+      let contractState = await Purchase.state();
+      let contractBalance = await web3.eth.getBalance(Purchase.options.address);
+
+      assert.eventEmitted(result, "Aborted", {});
+      assert.ok(contractState == state["INACTIVE"]);
+      assert.ok(contractBalance == 0);
+    });
 
   // it("set storage value", async function () {
   //   await SimpleStorage.methods.set(150).send({from: web3.eth.defaultAccount});
